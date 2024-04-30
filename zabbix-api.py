@@ -117,11 +117,13 @@ def parse_args():
     # parse the args
     args = parser.parse_args()
 
-    return(args)
+    return args
+
 
 # PSK generator function
 def gen_psk(length):
     return secrets.token_hex(length//2)
+
 
 # Host request generator function
 def gen_host_request(args):
@@ -129,32 +131,34 @@ def gen_host_request(args):
 
     # host_create specific
     if args.func == host_create:
-        if args.name: api_request['name'] = args.name
+        if args.name:
+            api_request['name'] = args.name
 
         api_request['groups'] = []
+
         for group in args.group:
             groupdata = hostgroup_get(Namespace(func=args.func, all=False, name=group))
-            if groupdata == None:
+            if groupdata is None:
                 log.warning("Host group '" + group + "' does not exist")
                 continue
             api_request['groups'].append({'groupid': groupdata['groupid']})
 
-        if not args.template == None:
+        if not args.template is None:
             api_request['templates'] = []
             for template in args.template:
                 templatedata = template_get(Namespace(func=args.func, all=False, name=template))
-                if groupdata == None:
+                if groupdata is None:
                     log.warning("Template '" + group + "' does not exist")
                     continue
                 api_request['templates'].append({'templateid': templatedata['templateid']})
 
         api_request['interfaces'] = {}
-        api_request['interfaces']['type'] = args.interface_type # 1=Agent, 2=SNMP
+        api_request['interfaces']['type'] = args.interface_type  # 1=Agent, 2=SNMP
         api_request['interfaces']['ip'] = args.interface_ip
         api_request['interfaces']['dns'] = args.fqdn
-        api_request['interfaces']['port'] = 10050 if api_request['interfaces']['type'] == 1 else 161 # 10050 for agent, 161 for snmp
-        api_request['interfaces']['useip'] = 1 # 0=dns, 1=ip
-        api_request['interfaces']['main'] = 1 # 0=not default, 1=default
+        api_request['interfaces']['port'] = 10050 if api_request['interfaces']['type'] == 1 else 161  # 10050 for agent, 161 for snmp
+        api_request['interfaces']['useip'] = 1  # 0=dns, 1=ip
+        api_request['interfaces']['main'] = 1  # 0=not default, 1=default
 
     # host_update specific
     if args.func == host_update:
@@ -167,7 +171,7 @@ def gen_host_request(args):
             api_request['groups'] = []
             for group in args.group:
                 groupdata = hostgroup_get(Namespace(func=args.func, all=False, name=group))
-                if groupdata == None:
+                if groupdata is None:
                     log.warning("Host group '" + group + "' does not exist")
                     continue
                 api_request['groups'].append({'groupid': groupdata['groupid']})
@@ -176,7 +180,7 @@ def gen_host_request(args):
             api_request['templates'] = []
             for template in args.template:
                 templatedata = template_get(Namespace(func=args.func, all=False, name=template))
-                if templatedata == None:
+                if templatedata is None:
                     log.warning("Template '" + template + "' does not exist")
                     continue
                 api_request['templates'].append({'templateid': templatedata['templateid']})
@@ -186,10 +190,10 @@ def gen_host_request(args):
         if args.interface_ip:
             api_request['interfaces'][0]['ip'] = args.interface_ip
         if api_request['interfaces'][0]:
-            api_request['interfaces'][0]['port'] = 10050 if int(api_request['interfaces'][0]['type']) == 1 else 161 # 10050 for agent, 161 for snmp
+            api_request['interfaces'][0]['port'] = 10050 if int(api_request['interfaces'][0]['type']) == 1 else 161  # 10050 for agent, 161 for snmp
             api_request['interfaces'][0]['dns'] = args.fqdn
-            api_request['interfaces'][0]['useip'] = 1 # 0=dns, 1=ip
-            api_request['interfaces'][0]['main'] = 1 # 0=not default, 1=default
+            api_request['interfaces'][0]['useip'] = 1  # 0=dns, 1=ip
+            api_request['interfaces'][0]['main'] = 1  # 0=not default, 1=default
 
         if args.no_tls:
             api_request['tls_connect'] = 1
@@ -197,7 +201,8 @@ def gen_host_request(args):
 
     # generic
     api_request['host'] = args.fqdn
-    if args.desc: api_request['description'] = args.desc
+    if args.desc:
+        api_request['description'] = args.desc
     if args.tls:
         api_request['tls_connect'] = 2
         api_request['tls_accept'] = 2
@@ -206,10 +211,11 @@ def gen_host_request(args):
 
     return api_request
 
+
 # Host creator function
 def host_create(args):
     args.all = False
-    if host_get(args) == None:
+    if host_get(args) is None:
         api_request = gen_host_request(args)
 
         try:
@@ -225,11 +231,12 @@ def host_create(args):
     else:
         log.error("Host '" + args.fqdn + "' already exists")
 
+
 # Function host_delete
 def host_delete(args):
     args.all = False
     hostdata = host_get(args)
-    if not hostdata == None:
+    if not hostdata is None:
         try:
             api.host.delete(hostdata['hostid'])
         except Exception as error:
@@ -239,6 +246,7 @@ def host_delete(args):
         log.info("Host '" + args.fqdn + "' successfully deleted")
     else:
         log.error("Host '" + args.fqdn + "' does not exist")
+
 
 # Function host_get
 def host_get(args):
@@ -251,11 +259,11 @@ def host_get(args):
         sys.exit(1)
 
     host = api.host.get(
-        search={ "host": [ '*' if args.all else args.fqdn ] },
-        output=[ 'hostid', 'host' ],
-        selectHostGroups=[ 'groupid', 'name' ],
-        selectInterfaces=[ 'interfaceid', 'type', 'ip', 'dns', 'port', 'useip', 'main' ],
-        selectParentTemplates=[ 'templateid', 'name' ],
+        search={"host": ['*' if args.all else args.fqdn]},
+        output=['hostid', 'host'],
+        selectHostGroups=['groupid', 'name'],
+        selectInterfaces=['interfaceid', 'type', 'ip', 'dns', 'port', 'useip', 'main'],
+        selectParentTemplates=['templateid', 'name'],
         searchWildcardsEnabled=True,
     )
 
@@ -274,11 +282,12 @@ def host_get(args):
         else:
             log.debug("Host '" + args.fqdn + "' does not exist")
 
+
 # Function host_update
 def host_update(args):
     args.all = False
     hostdata = host_get(args)
-    if not hostdata == None:
+    if not hostdata is None:
         api_request = gen_host_request(args)
         api_request['hostid'] = hostdata['hostid']
 
@@ -295,11 +304,12 @@ def host_update(args):
     else:
         log.error("Host '" + args.fqdn + "' does not exist")
 
+
 # Function hostgroup_get
 def hostgroup_get(args):
     hostgroup = api.hostgroup.get(
-        search={ "name": [ '*' if args.all else args.name ] },
-        output=[ 'groupid', 'name' ],
+        search={"name": ['*' if args.all else args.name]},
+        output=['groupid', 'name'],
         searchWildcardsEnabled=True,
     )
 
@@ -317,11 +327,12 @@ def hostgroup_get(args):
         else:
             log.debug("Host group '" + args.name + "' does not exist")
 
+
 # Function template_get
 def template_get(args):
     template = api.template.get(
-        search={ "name": [ '*' if args.all else args.name ] },
-        output=[ 'templateid', 'name', 'description' ],
+        search={"name": ['*' if args.all else args.name]},
+        output=['templateid', 'name', 'description'],
         searchWildcardsEnabled=True,
     )
 
@@ -330,7 +341,7 @@ def template_get(args):
             if args.all:
                 print(json.dumps(template))
             else:
-                return(json.dumps(template[0]))
+                return json.dumps(template[0])
         else:
             return template[0]
     except:
@@ -339,8 +350,10 @@ def template_get(args):
         else:
             log.debug("Template '" + args.name + "' does not exist")
 
+
 # Check if config file exists
 api_config = configparser.ConfigParser()
+
 try:
     api_config.read_file(open(os.path.expanduser('~/.zabbix-api.ini')))
 except FileNotFoundError:
@@ -355,8 +368,7 @@ if not api_config['Api']['Url']:
     log.critical("Api URL not found in ~/.zabbix-api.ini")
     sys.exit(1)
 
-#if not api_config['Api']['Token'] and (not api_config['Api']['User'] or not api_config['Api']['Password']):
-if not 'Token' in api_config['Api'] and (not 'User' in api_config['Api'] or not 'Password' in api_config['Api']):
+if 'Token' not in api_config['Api'] and ('User' not in api_config['Api'] or 'Password' not in api_config['Api']):
     log.critical("No Api credentials (token or username/password) found in ~/.zabbix-api.ini")
     sys.exit(1)
 
@@ -364,7 +376,7 @@ if not 'Token' in api_config['Api'] and (not 'User' in api_config['Api'] or not 
 args = parse_args()
 
 # check if debug mode is needed
-if args.debug == True:
+if args.debug:
     log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
     log.info("Debug mode enabled")
 else:
@@ -387,5 +399,5 @@ if api.check_auth():
     args.func(args)
 
     # When token is used, calling api.logout() is not necessary
-    if not 'Token' in api_config['Api']:
+    if 'Token' not in api_config['Api']:
         api.logout()

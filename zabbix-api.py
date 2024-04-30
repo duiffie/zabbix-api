@@ -134,15 +134,6 @@ def gen_psk(length):
 def gen_host_request(args):
    api_request = {}
 
-   # generic
-   api_request['host'] = args.fqdn
-   if args.desc: api_request['description'] = args.desc
-   if args.tls:
-      api_request['tls_connect'] = 2
-      api_request['tls_accept'] = 2
-      api_request['tls_psk_identity'] = args.fqdn
-      api_request['tls_psk'] = gen_psk(args.tls)
-
    # host_create specific
    if args.func == host_create:
       if args.name: api_request['name'] = args.name
@@ -214,6 +205,15 @@ def gen_host_request(args):
       if args.no_tls:
          api_request['tls_connect'] = 1
          api_request['tls_accept'] = 1
+
+   # generic
+   api_request['host'] = args.fqdn
+   if args.desc: api_request['description'] = args.desc
+   if args.tls:
+      api_request['tls_connect'] = 2
+      api_request['tls_accept'] = 2
+      api_request['tls_psk_identity'] = args.fqdn
+      api_request['tls_psk'] = gen_psk(args.tls)
 
    return api_request
 

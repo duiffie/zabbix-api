@@ -116,13 +116,15 @@ def parse_args():
    # parse the args
    args = parser.parse_args()
 
-   # check if debug mode is needed
-   if args.debug == True:
-      log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG, force=True)
-      log.info("Debug mode enabled")
+   return(args)
 
-   # call whatever function was selected
-   args.func(args)
+#   # check if debug mode is needed
+#   if args.debug == True:
+#      log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG, force=True)
+#      log.info("Debug mode enabled")
+#
+#   # call whatever function was selected
+#   args.func(args)
 
 # PSK generator function
 def gen_psk(length):
@@ -348,10 +350,6 @@ def template_get(args):
       else:
          log.debug("Template '" + args.name + "' does not exist")
 
-
-# Initialize logging
-log.basicConfig(format="%(levelname)s: %(message)s", level=log.INFO)
-
 # Check if config file exists
 api_config = configparser.ConfigParser()
 try:
@@ -368,14 +366,37 @@ if not api_config['Api']['Url']:
    log,critical("Api URL not found in ~/.zabbix-api.ini")
    sys.exit(1)
 
-if not api_config['Api']['Token']:
-   log,critical("Api token not found in ~/.zabbix-api.ini")
+#if not api_config['Api']['Token'] and (not api_config['Api']['User'] or not api_config['Api']['Password']):
+if not 'Token' in api_config['Api'] and (not 'User' in api_config['Api'] or not 'Password' in api_config['Api']):
+   log.critical("No Api credentials (token or username/password) found in ~/.zabbix-api.ini")
    sys.exit(1)
 
+# Parse arguments and start required function
+args = parse_args()
+
+# check if debug mode is needed
+if args.debug == True:
+   log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
+   log.info("Debug mode enabled")
+else:
+   log.basicConfig(format="%(levelname)s: %(message)s", level=log.INFO)
+
 # Create an instance of the ZabbixAPI class with the specified authentication details
-api = ZabbixAPI(url=api_config['Api']['Url'], token=api_config['Api']['Token'])
+try:
+   if 'Token' in api_config['Api']:
+      api = ZabbixAPI(url=api_config['Api']['Url'], token=api_config['Api']['Token'])
+   else:
+      api = ZabbixAPI(url=api_config['Api']['Url'], user=api_config['Api']['User'], password=api_config['Api']['Password'])
+except Exception as error:
+   log.critical("Could not login to zabbix api (%s)", error)
+   sys.exit(1)
 
 # Check if authentication is still valid
 if api.check_auth():
-   # Parse arguments and start required function
-   parse_args()
+
+   # call whatever function was selected
+   args.func(args)
+
+   # When token is used, calling api.logout() is not necessary
+   if not api_config['Api']['Token']:
+      api.logout()

@@ -46,8 +46,7 @@ def parse_args():
    parser_host_create.add_argument('-p', '--template', type=str, action='append', help='Add this template to the host. Can be used multiple times')
    parser_host_create.add_argument('-it', '--interface_type', type=int, choices=[1, 2, 3, 4], help='Interface type to create. 1 = Agent, 2 = SNMP, 3 = IPMI, 4 = JMX', required=True)
    parser_host_create.add_argument('-ii', '--interface_ip', type=str, help='IP-address used by the interface', required=True)
-   parser_host_create.add_argument('-t', '--tls', action="store_true", help='Encrypt connections to the host')
-   parser_host_create.add_argument('-k', '--keylength', type=int, choices=[32, 64, 128, 256, 512], default=64, help='The preshared key length (default: 64)')
+   parser_host_create.add_argument('-t', '--tls', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
    parser_host_create.add_argument('-v', '--verbose', action='count', help='Be more verbose')
    parser_host_create.add_argument('--debug', action='store_true', help='Enable debug mode')
    parser_host_create.set_defaults(func=host_create)
@@ -81,8 +80,7 @@ def parse_args():
    parser_host_update.add_argument('-it', '--interface_type', type=int, choices=[1, 2, 3, 4], help='Interface type. 1 = Agent, 2 = SNMP, 3 = IPMI, 4 = JMX')
    parser_host_update.add_argument('-ii', '--interface_ip', type=str, help='IP-address used by the interface')
    parser_host_update.add_argument('-nt', '--no_tls', action="store_true", help="Don't encrypt connections to the host")
-   parser_host_update.add_argument('-t', '--tls', action="store_true", help='Encrypt connections to the host')
-   parser_host_update.add_argument('-k', '--keylength', type=int, choices=[32, 64, 128, 256, 512], default=64, help='The preshared key length (default: 64)')
+   parser_host_update.add_argument('-t', '--tls', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
    parser_host_update.add_argument('-v', '--verbose', action='count', help='Be more verbose')
    parser_host_update.add_argument('--debug', action='store_true', help='Enable debug mode')
    parser_host_update.set_defaults(func=host_update)
@@ -132,26 +130,21 @@ def gen_psk(length):
 
 # Host request generator function
 def gen_host_request(args):
-   if args.func == host_update:
-      hostdata = host_get(Namespace(func=args.func, fqdn=args.fqdn))
-
    api_request = {}
+
+   # generic
    api_request['host'] = args.fqdn
    if args.desc: api_request['description'] = args.desc
-   if args.func == host_create:
-      if args.name: api_request['name'] = args.name
-   else:
-      api_request['name'] = args.name if args.name else hostdata['name']
    if args.tls:
       api_request['tls_connect'] = 2
       api_request['tls_accept'] = 2
       api_request['tls_psk_identity'] = args.fqdn
-      api_request['tls_psk'] = gen_psk(args.keylength)
-   if args.func == host_update:
-      if args.no_tls:
-         api_request['tls_connect'] = 1
-         api_request['tls_accept'] = 1
+      api_request['tls_psk'] = gen_psk(args.tls)
+
+   # host_create specific
    if args.func == host_create:
+      if args.name: api_request['name'] = args.name
+
       api_request['groups'] = []
       for group in args.group:
          groupdata = hostgroup_get(Namespace(func=args.func, all=False, name=group))
@@ -159,33 +152,7 @@ def gen_host_request(args):
             log.warning("Host group '" + group + "' does not exist")
             continue
          api_request['groups'].append({'groupid': groupdata['groupid']})
-   else:
-      if args.group:
-          api_request['groups'] = []
-          for group in args.group:
-             groupdata = hostgroup_get(Namespace(func=args.func, all=False, name=group))
-             if groupdata == None:
-                log.warning("Host group '" + group + "' does not exist")
-                continue
-             api_request['groups'].append({'groupid': groupdata['groupid']})
-   if args.func == host_create:
-      api_request['interfaces'] = {}
-      api_request['interfaces']['type'] = args.interface_type # 1=Agent, 2=SNMP
-      api_request['interfaces']['ip'] = args.interface_ip
-      api_request['interfaces']['dns'] = args.fqdn
-      api_request['interfaces']['port'] = 10050 if api_request['interfaces']['type'] == 1 else 161 # 10050 for agent, 161 for snmp
-      api_request['interfaces']['useip'] = 1 # 0=dns, 1=ip
-      api_request['interfaces']['main'] = 1 # 0=not default, 1=default
-   else:
-      api_request['interfaces'] = {}
-      api_request['interfaces']['type'] = args.interface_type if args.interface_type else hostdata['interfaces'][0]['type'] # 1=Agent, 2=SNMP (MvD)
-      api_request['interfaces']['ip'] = args.interface_ip if args.interface_ip else hostdata['interfaces'][0]['ip']
-      api_request['interfaces']['dns'] = args.fqdn
-      api_request['interfaces']['port'] = 10050 if api_request['interfaces']['type'] == '1' else 161 # 10050 for agent, 161 for snmp
-      api_request['interfaces']['useip'] = 1 # 0=dns, 1=ip
-      api_request['interfaces']['main'] = 1 # 0=not default, 1=default
 
-   if args.func == host_create:
       if not args.template == None:
          api_request['templates'] = []
          for template in args.template:
@@ -194,15 +161,57 @@ def gen_host_request(args):
                log.warning("Template '" + group + "' does not exist")
                continue
             api_request['templates'].append({'templateid': templatedata['templateid']})
-   else:
+
+      api_request['interfaces'] = {}
+      api_request['interfaces']['type'] = args.interface_type # 1=Agent, 2=SNMP
+      api_request['interfaces']['ip'] = args.interface_ip
+      api_request['interfaces']['dns'] = args.fqdn
+      api_request['interfaces']['port'] = 10050 if api_request['interfaces']['type'] == 1 else 161 # 10050 for agent, 161 for snmp
+      api_request['interfaces']['useip'] = 1 # 0=dns, 1=ip
+      api_request['interfaces']['main'] = 1 # 0=not default, 1=default
+
+   # host_update specific
+   if args.func == host_update:
+      api_request = host_get(Namespace(func=args.func, all=False, fqdn=args.fqdn))
+
+      if args.name:
+         api_request['name'] = args.name
+
+      if args.group:
+         api_request['groups'] = []
+         for group in args.group:
+            groupdata = hostgroup_get(Namespace(func=args.func, all=False, name=group))
+            if groupdata == None:
+               log.warning("Host group '" + group + "' does not exist")
+               continue
+            api_request['groups'].append({'groupid': groupdata['groupid']})
+
       if args.template:
          api_request['templates'] = []
          for template in args.template:
-            templatedata = template_get(Namespace(func=args.func, name=template))
+            templatedata = template_get(Namespace(func=args.func, all=False, name=template))
             if templatedata == None:
                log.warning("Template '" + template + "' does not exist")
                continue
             api_request['templates'].append({'templateid': templatedata['templateid']})
+
+#      api_request['interfaces'] = {}
+#      api_request['interfaces']['type'] = args.interface_type if args.interface_type else hostdata['interfaces'][0]['type'] # 1=Agent, 2=SNMP (MvD)
+#      api_request['interfaces']['ip'] = args.interface_ip if args.interface_ip else hostdata['interfaces'][0]['ip']
+#      api_request['interfaces']['dns'] = args.fqdn
+#      api_request['interfaces']['port'] = 10050 if api_request['interfaces']['type'] == '1' else 161 # 10050 for agent, 161 for snmp
+#      api_request['interfaces']['useip'] = 1 # 0=dns, 1=ip
+#      api_request['interfaces']['main'] = 1 # 0=not default, 1=default
+
+      if args.interface_type:
+         api_request['interfaces'][0]['type'] = args.interface_type
+      if args.interface_ip:
+         api_request['interfaces'][0]['ip'] = args.interface_ip
+      api_request['interfaces'][0]['port'] = 10050 if api_request['interfaces'][0]['type'] == '1' else 161 # 10050 for agent, 161 for snmp
+
+      if args.no_tls:
+         api_request['tls_connect'] = 1
+         api_request['tls_accept'] = 1
 
    return api_request
 

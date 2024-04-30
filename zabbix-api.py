@@ -188,19 +188,16 @@ def gen_host_request(args):
                continue
             api_request['templates'].append({'templateid': templatedata['templateid']})
 
-#      api_request['interfaces'] = {}
-#      api_request['interfaces']['type'] = args.interface_type if args.interface_type else hostdata['interfaces'][0]['type'] # 1=Agent, 2=SNMP (MvD)
-#      api_request['interfaces']['ip'] = args.interface_ip if args.interface_ip else hostdata['interfaces'][0]['ip']
-#      api_request['interfaces']['dns'] = args.fqdn
-#      api_request['interfaces']['port'] = 10050 if api_request['interfaces']['type'] == '1' else 161 # 10050 for agent, 161 for snmp
-#      api_request['interfaces']['useip'] = 1 # 0=dns, 1=ip
-#      api_request['interfaces']['main'] = 1 # 0=not default, 1=default
-
       if args.interface_type:
          api_request['interfaces'][0]['type'] = args.interface_type
+#         api_request['interfaces'][0]['port'] = 10050 if args.interface_type == 1 else 161 # 10050 for agent, 161 for snmp
       if args.interface_ip:
          api_request['interfaces'][0]['ip'] = args.interface_ip
-      api_request['interfaces'][0]['port'] = 10050 if api_request['interfaces'][0]['type'] == '1' else 161 # 10050 for agent, 161 for snmp
+      if api_request['interfaces'][0]:
+         api_request['interfaces'][0]['port'] = 10050 if int(api_request['interfaces'][0]['type']) == 1 else 161 # 10050 for agent, 161 for snmp
+         api_request['interfaces'][0]['dns'] = args.fqdn
+         api_request['interfaces'][0]['useip'] = 1 # 0=dns, 1=ip
+         api_request['interfaces'][0]['main'] = 1 # 0=not default, 1=default
 
       if args.no_tls:
          api_request['tls_connect'] = 1

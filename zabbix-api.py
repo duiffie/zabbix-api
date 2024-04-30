@@ -275,7 +275,7 @@ def host_get(args):
                 print(json.dumps(host[0]))
         else:
             return host[0]
-    except:
+    except Exception as error:
         if args.func == host_get:
             log.warning("Host '" + args.fqdn + "' does not exist")
             sys.exit(1)
@@ -321,7 +321,7 @@ def hostgroup_get(args):
                 print(json.dumps(hostgroup[0]))
         else:
             return hostgroup[0]
-    except:
+    except Exception as error:
         if args.func == hostgroup_get:
             log.info("Host group '" + args.name + "' does not exist")
         else:
@@ -344,7 +344,7 @@ def template_get(args):
                 return json.dumps(template[0])
         else:
             return template[0]
-    except:
+    except Exception as error:
         if args.func == template_get:
             log.info("Template '" + args.name + "' does not exist")
         else:

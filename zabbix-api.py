@@ -143,7 +143,7 @@ def gen_host_request(args):
                 continue
             api_request['groups'].append({'groupid': groupdata['groupid']})
 
-        if not args.template is None:
+        if args.template is not None:
             api_request['templates'] = []
             for template in args.template:
                 templatedata = template_get(Namespace(func=args.func, all=False, name=template))
@@ -236,7 +236,7 @@ def host_create(args):
 def host_delete(args):
     args.all = False
     hostdata = host_get(args)
-    if not hostdata is None:
+    if hostdata is not None:
         try:
             api.host.delete(hostdata['hostid'])
         except Exception as error:
@@ -287,7 +287,7 @@ def host_get(args):
 def host_update(args):
     args.all = False
     hostdata = host_get(args)
-    if not hostdata is None:
+    if hostdata is not None:
         api_request = gen_host_request(args)
         api_request['hostid'] = hostdata['hostid']
 

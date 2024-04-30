@@ -360,7 +360,7 @@ api_config.read(os.path.expanduser('~/.zabbix-api.ini'))
 
 # Check required options
 if not api_config['Api']['Url']:
-   log,critical("Api URL not found in ~/.zabbix-api.ini")
+   log.critical("Api URL not found in ~/.zabbix-api.ini")
    sys.exit(1)
 
 #if not api_config['Api']['Token'] and (not api_config['Api']['User'] or not api_config['Api']['Password']):

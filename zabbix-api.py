@@ -398,5 +398,5 @@ if api.check_auth():
    args.func(args)
 
    # When token is used, calling api.logout() is not necessary
-   if not api_config['Api']['Token']:
+   if not if 'Token' in api_config['Api']:
       api.logout()

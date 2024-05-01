@@ -22,10 +22,10 @@ There are two steps in configuring the usage of this script:
 
 ### Authentication
 
-#### Create an API token
+#### Howto create an API token
 See [the official Zabbix documentation](https://www.zabbix.com/documentation/current/en/manual/web_interface/frontend_sections/users/api_tokens)
 
-#### Create a Zabbix user
+#### Howto create a Zabbix user
 See [the official Zabbix documentation](https://www.zabbix.com/documentation/current/en/manual/config/users_and_usergroups/user)
 
 ### Configure the script

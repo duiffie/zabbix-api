@@ -25,7 +25,7 @@ from argparse import Namespace
 from zabbix_utils import ZabbixAPI
 
 
-def parse_args(): # pylint: disable=too-many-locals,too-many-statements
+def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     """Function parsing arguments"""
     DESCRIPTION = 'Wrapper around the zabbix_utils python library'
     parser = argparse.ArgumentParser(description=DESCRIPTION)
@@ -121,10 +121,10 @@ def parse_args(): # pylint: disable=too-many-locals,too-many-statements
 
 def gen_psk(length):
     """Function generating PSK's"""
-    return secrets.token_hex(length//2)
+    return secrets.token_hex(length // 2)
 
 
-def gen_host_request(arguments): # pylint: disable=too-many-branches,too-many-statements
+def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-statements
     """Function generating host api request"""
     api_request = {}
 
@@ -219,7 +219,7 @@ def host_create(arguments):
 
         try:
             api.host.create(api_request)
-        except Exception as error: # pylint: disable=broad-exception-caught
+        except Exception as error:  # pylint: disable=broad-exception-caught
             log.error("Unable to create host '%s' (%s)", arguments.fqdn, error)
             sys.exit(1)
 
@@ -238,7 +238,7 @@ def host_delete(arguments):
     if hostdata is not None:
         try:
             api.host.delete(hostdata['hostid'])
-        except Exception as error: # pylint: disable=broad-exception-caught
+        except Exception as error:  # pylint: disable=broad-exception-caught
             log.error("Could not delete host '%s' (%s)", arguments.fqdn, error)
             sys.exit(1)
 
@@ -274,7 +274,7 @@ def host_get(arguments):
             print(json.dumps(host[0]))
             return None
         return host[0]
-    except Exception: # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         if arguments.func is host_get:
             log.warning("Host '%s' does not exist", arguments.fqdn)
             sys.exit(1)
@@ -292,7 +292,7 @@ def host_update(arguments):
 
         try:
             api.host.update(api_request)
-        except Exception as error: # pylint: disable=broad-exception-caught
+        except Exception as error:  # pylint: disable=broad-exception-caught
             log.error("Unable to update host '%s' (%s)", arguments.fqdn, error)
             sys.exit(1)
 
@@ -320,7 +320,7 @@ def hostgroup_get(arguments):
             print(json.dumps(hostgroup[0]))
             return None
         return hostgroup[0]
-    except Exception: # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         if arguments.func is hostgroup_get:
             log.info("Host group '%s' does not exist", arguments.name)
             return None
@@ -343,7 +343,7 @@ def template_get(arguments):
                 return None
             return json.dumps(template[0])
         return template[0]
-    except Exception: # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         if arguments.func is template_get:
             log.info("Template '%s' does not exist", arguments.name)
             return None
@@ -355,7 +355,7 @@ def template_get(arguments):
 api_config = configparser.ConfigParser()
 
 try:
-    api_config.read_file(open(os.path.expanduser('~/.zabbix-api.ini'), encoding="utf-8")) # pylint: disable=consider-using-with
+    api_config.read_file(open(os.path.expanduser('~/.zabbix-api.ini'), encoding="utf-8"))  # pylint: disable=consider-using-with
 except FileNotFoundError:
     log.critical("Config file '~/.zabbix-api.ini' does not exist")
     sys.exit(1)
@@ -388,7 +388,7 @@ try:
         api = ZabbixAPI(url=api_config['Api']['Url'], token=api_config['Api']['Token'])
     else:
         api = ZabbixAPI(url=api_config['Api']['Url'], user=api_config['Api']['User'], password=api_config['Api']['Password'])
-except Exception as Error: # pylint: disable=broad-exception-caught
+except Exception as Error:  # pylint: disable=broad-exception-caught
     log.critical("Could not login to zabbix api (%s)", Error)
     sys.exit(1)
 

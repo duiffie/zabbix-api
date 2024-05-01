@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
+# pylint: disable=invalid-name,line-too-long
 
 """
 File: zabbix-api.py
@@ -8,10 +8,6 @@ Date: 28/04/2024
 
 Description: Wrapper around the zabbix_utils python library
 """
-
-# Futures
-from argparse import Namespace
-from zabbix_utils import ZabbixAPI
 
 # Built-in/Generic Imports
 import argparse
@@ -24,10 +20,13 @@ import sys
 # Libs
 import logging as log
 
+# Futures
+from argparse import Namespace
+from zabbix_utils import ZabbixAPI
 
-# Argument parser function
-def parse_args():
-    # create the top-level parser
+
+def parse_args(): # pylint: disable=too-many-locals,too-many-statements
+    """Function parsing arguments"""
     DESCRIPTION = 'Wrapper around the zabbix_utils python library'
     parser = argparse.ArgumentParser(description=DESCRIPTION)
     subparsers = parser.add_subparsers(required=True)
@@ -115,151 +114,151 @@ def parse_args():
     parser_template_get.set_defaults(func=template_get)
 
     # parse the args
-    args = parser.parse_args()
+    arguments = parser.parse_args()
 
-    return args
+    return arguments
 
 
-# PSK generator function
 def gen_psk(length):
+    """Function generating PSK's"""
     return secrets.token_hex(length//2)
 
 
-# Host request generator function
-def gen_host_request(args):
+def gen_host_request(arguments): # pylint: disable=too-many-branches,too-many-statements
+    """Function generating host api request"""
     api_request = {}
 
     # host_create specific
-    if args.func == host_create:
-        if args.name:
-            api_request['name'] = args.name
+    if arguments.func is host_create:
+        if arguments.name:
+            api_request['name'] = arguments.name
 
         api_request['groups'] = []
 
-        for group in args.group:
-            groupdata = hostgroup_get(Namespace(func=args.func, all=False, name=group))
+        for group in arguments.group:
+            groupdata = hostgroup_get(Namespace(func=arguments.func, all=False, name=group))
             if groupdata is None:
-                log.warning("Host group '" + group + "' does not exist")
+                log.warning("Host group '%s' does not exist", group)
                 continue
             api_request['groups'].append({'groupid': groupdata['groupid']})
 
-        if args.template is not None:
+        if arguments.template is not None:
             api_request['templates'] = []
-            for template in args.template:
-                templatedata = template_get(Namespace(func=args.func, all=False, name=template))
+            for template in arguments.template:
+                templatedata = template_get(Namespace(func=arguments.func, all=False, name=template))
                 if groupdata is None:
-                    log.warning("Template '" + group + "' does not exist")
+                    log.warning("Template '%s' does not exist", template)
                     continue
                 api_request['templates'].append({'templateid': templatedata['templateid']})
 
         api_request['interfaces'] = {}
-        api_request['interfaces']['type'] = args.interface_type  # 1=Agent, 2=SNMP
-        api_request['interfaces']['ip'] = args.interface_ip
-        api_request['interfaces']['dns'] = args.fqdn
+        api_request['interfaces']['type'] = arguments.interface_type  # 1=Agent, 2=SNMP
+        api_request['interfaces']['ip'] = arguments.interface_ip
+        api_request['interfaces']['dns'] = arguments.fqdn
         api_request['interfaces']['port'] = 10050 if api_request['interfaces']['type'] == 1 else 161  # 10050 for agent, 161 for snmp
         api_request['interfaces']['useip'] = 1  # 0=dns, 1=ip
         api_request['interfaces']['main'] = 1  # 0=not default, 1=default
 
     # host_update specific
-    if args.func == host_update:
-        api_request = host_get(Namespace(func=args.func, all=False, fqdn=args.fqdn))
+    if arguments.func is host_update:
+        api_request = host_get(Namespace(func=arguments.func, all=False, fqdn=arguments.fqdn))
 
-        if args.name:
-            api_request['name'] = args.name
+        if arguments.name:
+            api_request['name'] = arguments.name
 
-        if args.group:
+        if arguments.group:
             api_request['groups'] = []
-            for group in args.group:
-                groupdata = hostgroup_get(Namespace(func=args.func, all=False, name=group))
+            for group in arguments.group:
+                groupdata = hostgroup_get(Namespace(func=arguments.func, all=False, name=group))
                 if groupdata is None:
-                    log.warning("Host group '" + group + "' does not exist")
+                    log.warning("Host group '%s' does not exist", group)
                     continue
                 api_request['groups'].append({'groupid': groupdata['groupid']})
 
-        if args.template:
+        if arguments.template:
             api_request['templates'] = []
-            for template in args.template:
-                templatedata = template_get(Namespace(func=args.func, all=False, name=template))
+            for template in arguments.template:
+                templatedata = template_get(Namespace(func=arguments.func, all=False, name=template))
                 if templatedata is None:
-                    log.warning("Template '" + template + "' does not exist")
+                    log.warning("Template '%s' does not exist", template)
                     continue
                 api_request['templates'].append({'templateid': templatedata['templateid']})
 
-        if args.interface_type:
-            api_request['interfaces'][0]['type'] = args.interface_type
-        if args.interface_ip:
-            api_request['interfaces'][0]['ip'] = args.interface_ip
+        if arguments.interface_type:
+            api_request['interfaces'][0]['type'] = arguments.interface_type
+        if arguments.interface_ip:
+            api_request['interfaces'][0]['ip'] = arguments.interface_ip
         if api_request['interfaces'][0]:
             api_request['interfaces'][0]['port'] = 10050 if int(api_request['interfaces'][0]['type']) == 1 else 161  # 10050 for agent, 161 for snmp
-            api_request['interfaces'][0]['dns'] = args.fqdn
+            api_request['interfaces'][0]['dns'] = arguments.fqdn
             api_request['interfaces'][0]['useip'] = 1  # 0=dns, 1=ip
             api_request['interfaces'][0]['main'] = 1  # 0=not default, 1=default
 
-        if args.no_tls:
+        if arguments.no_tls:
             api_request['tls_connect'] = 1
             api_request['tls_accept'] = 1
 
     # generic
-    api_request['host'] = args.fqdn
-    if args.desc:
-        api_request['description'] = args.desc
-    if args.tls:
+    api_request['host'] = arguments.fqdn
+    if arguments.desc:
+        api_request['description'] = arguments.desc
+    if arguments.tls:
         api_request['tls_connect'] = 2
         api_request['tls_accept'] = 2
-        api_request['tls_psk_identity'] = args.fqdn
-        api_request['tls_psk'] = gen_psk(args.tls)
+        api_request['tls_psk_identity'] = arguments.fqdn
+        api_request['tls_psk'] = gen_psk(arguments.tls)
 
     return api_request
 
 
-# Host creator function
-def host_create(args):
-    args.all = False
-    if host_get(args) is None:
-        api_request = gen_host_request(args)
+def host_create(arguments):
+    """Function to create hosts"""
+    arguments.all = False
+    if host_get(arguments) is None:
+        api_request = gen_host_request(arguments)
 
         try:
             api.host.create(api_request)
-        except Exception as error:
-            log.error("Unable to create host '" + args.fqdn + "' (%s)", error)
+        except Exception as error: # pylint: disable=broad-exception-caught
+            log.error("Unable to create host '%s' (%s)", arguments.fqdn, error)
             sys.exit(1)
 
-        if args.tls:
-            log.info("Host '" + args.fqdn + "' successfully created (psk: '" + api_request['tls_psk'] + "')")
+        if arguments.tls:
+            log.info("Host '%s' successfully created (psk: '%s')", arguments.fqdn, api_request['tls_psk'])
         else:
-            log.info("Host '" + args.fqdn + "' successfully created")
+            log.info("Host '%s' successfully created", arguments.fqdn)
     else:
-        log.error("Host '" + args.fqdn + "' already exists")
+        log.error("Host '%s' already exists", arguments.fqdn)
 
 
-# Function host_delete
-def host_delete(args):
-    args.all = False
-    hostdata = host_get(args)
+def host_delete(arguments):
+    """Function to delete hosts"""
+    arguments.all = False
+    hostdata = host_get(arguments)
     if hostdata is not None:
         try:
             api.host.delete(hostdata['hostid'])
-        except Exception as error:
-            log.error("Could not delete host '" + args.fqdn + "' (%s)", error)
+        except Exception as error: # pylint: disable=broad-exception-caught
+            log.error("Could not delete host '%s' (%s)", arguments.fqdn, error)
             sys.exit(1)
 
-        log.info("Host '" + args.fqdn + "' successfully deleted")
+        log.info("Host '%s' successfully deleted", arguments.fqdn)
     else:
-        log.error("Host '" + args.fqdn + "' does not exist")
+        log.error("Host '%s' does not exist", arguments.fqdn)
 
 
-# Function host_get
-def host_get(args):
-    if not args.all and not args.fqdn:
+def host_get(arguments):
+    """Function to query hosts"""
+    if not arguments.all and not arguments.fqdn:
         log.error("Argument -a or -f is required for the 'host get' command")
         sys.exit(1)
 
-    if args.all and args.fqdn:
+    if arguments.all and arguments.fqdn:
         log.error("Cannot accept both -a and -f arguments for the 'host get' command")
         sys.exit(1)
 
     host = api.host.get(
-        search={"host": ['*' if args.all else args.fqdn]},
+        search={"host": ['*' if arguments.all else arguments.fqdn]},
         output=['hostid', 'host'],
         selectHostGroups=['groupid', 'name'],
         selectInterfaces=['interfaceid', 'type', 'ip', 'dns', 'port', 'useip', 'main'],
@@ -268,94 +267,95 @@ def host_get(args):
     )
 
     try:
-        if args.func == host_get:
-            if args.all:
+        if arguments.func is host_get:
+            if arguments.all:
                 print(json.dumps(host))
-            else:
-                print(json.dumps(host[0]))
-        else:
-            return host[0]
-    except Exception as error:
-        if args.func == host_get:
-            log.warning("Host '" + args.fqdn + "' does not exist")
+                return None
+            print(json.dumps(host[0]))
+            return None
+        return host[0]
+    except Exception: # pylint: disable=broad-exception-caught
+        if arguments.func is host_get:
+            log.warning("Host '%s' does not exist", arguments.fqdn)
             sys.exit(1)
-        else:
-            log.debug("Host '" + args.fqdn + "' does not exist")
+        log.debug("Host '%s' does not exist", arguments.fqdn)
+        return None
 
 
-# Function host_update
-def host_update(args):
-    args.all = False
-    hostdata = host_get(args)
+def host_update(arguments):
+    """Function to update hosts"""
+    arguments.all = False
+    hostdata = host_get(arguments)
     if hostdata is not None:
-        api_request = gen_host_request(args)
+        api_request = gen_host_request(arguments)
         api_request['hostid'] = hostdata['hostid']
 
         try:
             api.host.update(api_request)
-        except Exception as error:
-            log.error("Unable to update host '" + args.fqdn + "' (%s)", error)
+        except Exception as error: # pylint: disable=broad-exception-caught
+            log.error("Unable to update host '%s' (%s)", arguments.fqdn, error)
             sys.exit(1)
 
-        if args.tls:
-            log.info("Host '" + args.fqdn + "' successfully updated (psk: '" + api_request['tls_psk'] + "')")
+        if arguments.tls:
+            log.info("Host '%s' successfully updated (psk: '%s')", arguments.fqdn, api_request['tls_psk'])
         else:
-            log.info("Host '" + args.fqdn + "' successfully updated")
+            log.info("Host '%s' successfully updated", arguments.fqdn)
     else:
-        log.error("Host '" + args.fqdn + "' does not exist")
+        log.error("Host '%s' does not exist", arguments.fqdn)
 
 
-# Function hostgroup_get
-def hostgroup_get(args):
+def hostgroup_get(arguments):
+    """Function to query host groups"""
     hostgroup = api.hostgroup.get(
-        search={"name": ['*' if args.all else args.name]},
+        search={"name": ['*' if arguments.all else arguments.name]},
         output=['groupid', 'name'],
         searchWildcardsEnabled=True,
     )
 
     try:
-        if args.func == hostgroup_get:
-            if args.all:
+        if arguments.func is hostgroup_get:
+            if arguments.all:
                 print(json.dumps(hostgroup))
-            else:
-                print(json.dumps(hostgroup[0]))
-        else:
-            return hostgroup[0]
-    except Exception as error:
-        if args.func == hostgroup_get:
-            log.info("Host group '" + args.name + "' does not exist")
-        else:
-            log.debug("Host group '" + args.name + "' does not exist")
+                return None
+            print(json.dumps(hostgroup[0]))
+            return None
+        return hostgroup[0]
+    except Exception: # pylint: disable=broad-exception-caught
+        if arguments.func is hostgroup_get:
+            log.info("Host group '%s' does not exist", arguments.name)
+            return None
+        log.debug("Host group '%s' does not exist", arguments.name)
+        return None
 
 
-# Function template_get
-def template_get(args):
+def template_get(arguments):
+    """Function to query templates"""
     template = api.template.get(
-        search={"name": ['*' if args.all else args.name]},
+        search={"name": ['*' if arguments.all else arguments.name]},
         output=['templateid', 'name', 'description'],
         searchWildcardsEnabled=True,
     )
 
     try:
-        if args.func == template_get:
-            if args.all:
+        if arguments.func is template_get:
+            if arguments.all:
                 print(json.dumps(template))
-            else:
-                return json.dumps(template[0])
-        else:
-            return template[0]
-    except Exception as error:
-        if args.func == template_get:
-            log.info("Template '" + args.name + "' does not exist")
-        else:
-            log.debug("Template '" + args.name + "' does not exist")
+                return None
+            return json.dumps(template[0])
+        return template[0]
+    except Exception: # pylint: disable=broad-exception-caught
+        if arguments.func is template_get:
+            log.info("Template '%s' does not exist", arguments.name)
+            return None
+        log.debug("Template '%s' does not exist", arguments.name)
+        return None
 
 
 # Check if config file exists
 api_config = configparser.ConfigParser()
 
 try:
-    api_config.read_file(open(os.path.expanduser('~/.zabbix-api.ini')))
+    api_config.read_file(open(os.path.expanduser('~/.zabbix-api.ini'), encoding="utf-8")) # pylint: disable=consider-using-with
 except FileNotFoundError:
     log.critical("Config file '~/.zabbix-api.ini' does not exist")
     sys.exit(1)
@@ -388,8 +388,8 @@ try:
         api = ZabbixAPI(url=api_config['Api']['Url'], token=api_config['Api']['Token'])
     else:
         api = ZabbixAPI(url=api_config['Api']['Url'], user=api_config['Api']['User'], password=api_config['Api']['Password'])
-except Exception as error:
-    log.critical("Could not login to zabbix api (%s)", error)
+except Exception as Error: # pylint: disable=broad-exception-caught
+    log.critical("Could not login to zabbix api (%s)", Error)
     sys.exit(1)
 
 # Check if authentication is still valid

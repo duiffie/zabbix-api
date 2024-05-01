@@ -12,7 +12,7 @@ It is in beta state and might work or it might not. I am still working on docume
 
 ## Requirements
 * Python 3.x
-* [python-zabbix-utils module](https://github.com/zabbix/python-zabbix-utils)
+* [python-zabbix-utils](https://github.com/zabbix/python-zabbix-utils) module
 
 ## Configuration
 There are two steps in configuring the usage of this script:

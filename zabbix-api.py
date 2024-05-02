@@ -223,10 +223,8 @@ def host_create(arguments):
             log.error("Unable to create host '%s' (%s)", arguments.fqdn, error)
             sys.exit(1)
 
-        if arguments.tls:
-            log.info("Host '%s' successfully created (psk: '%s')", arguments.fqdn, api_request['tls_psk'])
-        else:
-            log.info("Host '%s' successfully created", arguments.fqdn)
+        log.info("Host '%s' successfully created:", arguments.fqdn)
+        print(json.dumps(api_request))
     else:
         log.error("Host '%s' already exists", arguments.fqdn)
 
@@ -296,10 +294,8 @@ def host_update(arguments):
             log.error("Unable to update host '%s' (%s)", arguments.fqdn, error)
             sys.exit(1)
 
-        if arguments.tls:
-            log.info("Host '%s' successfully updated (psk: '%s')", arguments.fqdn, api_request['tls_psk'])
-        else:
-            log.info("Host '%s' successfully updated", arguments.fqdn)
+        log.info("Host '%s' successfully updated:", arguments.fqdn)
+        print(json.dumps(api_request))
     else:
         log.error("Host '%s' does not exist", arguments.fqdn)
 

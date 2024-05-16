@@ -167,13 +167,6 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
                     continue
                 api_request['templates'].append({'templateid': templatedata['templateid']})
 
-        if arguments.proxy is not None:
-            proxydata = proxy_get(Namespace(func=arguments.func, all=False, name=arguments.proxy))
-            if proxydata is None:
-                log.warning("Proxy '%s' does not exist", arguments.proxy)
-                sys.exit(1)
-            api_request['proxy_hostid'] = proxydata['proxyid']
-
         api_request['interfaces'] = {}
         api_request['interfaces']['type'] = arguments.interface_type  # 1=Agent, 2=SNMP
         api_request['interfaces']['ip'] = arguments.interface_ip
@@ -230,6 +223,12 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
         api_request['tls_accept'] = 2
         api_request['tls_psk_identity'] = arguments.fqdn
         api_request['tls_psk'] = gen_psk(arguments.encryption)
+    if arguments.proxy is not None:
+        proxydata = proxy_get(Namespace(func=arguments.func, all=False, name=arguments.proxy))
+        if proxydata is None:
+            log.warning("Proxy '%s' does not exist", arguments.proxy)
+            sys.exit(1)
+        api_request['proxy_hostid'] = proxydata['proxyid']
 
     return api_request
 

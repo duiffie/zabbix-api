@@ -43,10 +43,11 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     parser_host_create.add_argument('-n', '--name', type=str, help='Visible name of the host')
     parser_host_create.add_argument('-d', '--desc', type=str, help='Description of the host')
     parser_host_create.add_argument('-g', '--group', type=str, action='append', help='Add the host to this group. Can be used multiple times', required=True)
-    parser_host_create.add_argument('-p', '--template', type=str, action='append', help='Add this template to the host. Can be used multiple times')
+    parser_host_create.add_argument('-t', '--template', type=str, action='append', help='Add this template to the host. Can be used multiple times')
+    parser_host_create.add_argument('-p', '--proxy', type=str, help='Connect the agent through this zabbix proxy')
     parser_host_create.add_argument('-it', '--interface_type', type=int, choices=[1, 2, 3, 4], help='Interface type to create. 1 = Agent, 2 = SNMP, 3 = IPMI, 4 = JMX', required=True)
     parser_host_create.add_argument('-ii', '--interface_ip', type=str, help='IP-address used by the interface', required=True)
-    parser_host_create.add_argument('-t', '--tls', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
+    parser_host_create.add_argument('-e', '--encryption', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
     parser_host_create.add_argument('-v', '--verbose', action='count', help='Be more verbose')
     parser_host_create.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser_host_create.set_defaults(func=host_create)
@@ -76,11 +77,12 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     parser_host_update.add_argument('-n', '--name', type=str, help='Visible name of the host')
     parser_host_update.add_argument('-d', '--desc', type=str, help='Description of the host')
     parser_host_update.add_argument('-g', '--group', type=str, action='append', help='Add the host to this group. Can be used multiple times')
-    parser_host_update.add_argument('-p', '--template', type=str, action='append', help='Add this template to the host. Can be used multiple times')
+    parser_host_update.add_argument('-t', '--template', type=str, action='append', help='Add this template to the host. Can be used multiple times')
+    parser_host_update.add_argument('-p', '--proxy', type=str, help='Connect the agent through this zabbix proxy')
     parser_host_update.add_argument('-it', '--interface_type', type=int, choices=[1, 2, 3, 4], help='Interface type. 1 = Agent, 2 = SNMP, 3 = IPMI, 4 = JMX')
     parser_host_update.add_argument('-ii', '--interface_ip', type=str, help='IP-address used by the interface')
-    parser_host_update.add_argument('-nt', '--no_tls', action="store_true", help="Don't encrypt connections to the host")
-    parser_host_update.add_argument('-t', '--tls', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
+    parser_host_update.add_argument('-ne', '--no_encryption', action="store_true", help="Don't encrypt connections to the host")
+    parser_host_update.add_argument('-e', '--encryption', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
     parser_host_update.add_argument('-v', '--verbose', action='count', help='Be more verbose')
     parser_host_update.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser_host_update.set_defaults(func=host_update)
@@ -165,6 +167,13 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
                     continue
                 api_request['templates'].append({'templateid': templatedata['templateid']})
 
+        if arguments.proxy is not None:
+            proxydata = proxy_get(Namespace(func=arguments.func, all=False, name=arguments.proxy))
+            if proxydata is None:
+                log.warning("Proxy '%s' does not exist", arguments.proxy)
+                sys.exit(1)
+            api_request['proxy_hostid'] = proxydata['proxyid']
+
         api_request['interfaces'] = {}
         api_request['interfaces']['type'] = arguments.interface_type  # 1=Agent, 2=SNMP
         api_request['interfaces']['ip'] = arguments.interface_ip
@@ -208,7 +217,7 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
             api_request['interfaces'][0]['useip'] = 1  # 0=dns, 1=ip
             api_request['interfaces'][0]['main'] = 1  # 0=not default, 1=default
 
-        if arguments.no_tls:
+        if arguments.no_encryption:
             api_request['tls_connect'] = 1
             api_request['tls_accept'] = 1
 
@@ -216,11 +225,11 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
     api_request['host'] = arguments.fqdn
     if arguments.desc:
         api_request['description'] = arguments.desc
-    if arguments.tls:
+    if arguments.encryption:
         api_request['tls_connect'] = 2
         api_request['tls_accept'] = 2
         api_request['tls_psk_identity'] = arguments.fqdn
-        api_request['tls_psk'] = gen_psk(arguments.tls)
+        api_request['tls_psk'] = gen_psk(arguments.encryption)
 
     return api_request
 

@@ -230,7 +230,7 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
             sys.exit(1)
         api_request['proxy_hostid'] = proxydata['proxyid']
     else:
-        api_request['proxy_hostid'] = ''
+        api_request['proxy_hostid'] = 0
 
     return api_request
 

@@ -396,6 +396,7 @@ def proxy_get(arguments):
         log.debug("Proxy '%s' does not exist", arguments.name)
         return None
 
+
 # Check if config file exists
 api_config = configparser.ConfigParser()
 

@@ -105,13 +105,27 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     template_subparsers = parser_template.add_subparsers(required=True)
 
     # create the parser for the "template" -> "get" command
-    DESCRIPTION = 'Get host group objects from Zabbix'
+    DESCRIPTION = 'Get template objects from Zabbix'
     parser_template_get = template_subparsers.add_parser('get', description=DESCRIPTION, help=DESCRIPTION)
-    parser_template_get.add_argument('-a', '--all', action='store_true', help='Retrieve all host groups')
+    parser_template_get.add_argument('-a', '--all', action='store_true', help='Retrieve all templates')
     parser_template_get.add_argument('-n', '--name', type=str, help='Template name')
     parser_template_get.add_argument('-v', '--verbose', action='count', help='Be more verbose')
     parser_template_get.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser_template_get.set_defaults(func=template_get)
+
+    # create the parser for the "proxy" command
+    DESCRIPTION = 'Get proxy objects from Zabbix'
+    parser_proxy = subparsers.add_parser('proxy', description=DESCRIPTION, help=DESCRIPTION)
+    proxy_subparsers = parser_proxy.add_subparsers(required=True)
+
+    # create the parser for the "proxy" -> "get" command
+    DESCRIPTION = 'Get proxy objects from Zabbix'
+    parser_proxy_get = proxy_subparsers.add_parser('get', description=DESCRIPTION, help=DESCRIPTION)
+    parser_proxy_get.add_argument('-a', '--all', action='store_true', help='Retrieve all proxies')
+    parser_proxy_get.add_argument('-n', '--name', type=str, help='Proxy name')
+    parser_proxy_get.add_argument('-v', '--verbose', action='count', help='Be more verbose')
+    parser_proxy_get.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser_proxy_get.set_defaults(func=proxy_get)
 
     # parse the args
     arguments = parser.parse_args()
@@ -346,6 +360,32 @@ def template_get(arguments):
         log.debug("Template '%s' does not exist", arguments.name)
         return None
 
+
+def proxy_get(arguments):
+    """Function to query proxies"""
+    if not arguments.all and not arguments.name:
+        log.error("Argument -a or -n is required for the 'proxy get' command")
+        sys.exit(1)
+
+    proxy = api.proxy.get(
+        search={"host": ['*' if arguments.all else arguments.name]},
+        output=['proxyid', 'host', 'description'],
+        searchWildcardsEnabled=True,
+    )
+
+    try:
+        if arguments.func is proxy_get:
+            if arguments.all:
+                print(json.dumps(proxy))
+                return None
+            return json.dumps(proxy[0])
+        return proxy[0]
+    except Exception:  # pylint: disable=broad-exception-caught
+        if arguments.func is proxy_get:
+            log.info("Proxy '%s' does not exist", arguments.name)
+            return None
+        log.debug("Proxy '%s' does not exist", arguments.name)
+        return None
 
 # Check if config file exists
 api_config = configparser.ConfigParser()

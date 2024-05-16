@@ -281,7 +281,7 @@ def host_get(arguments):
 
     host = api.host.get(
         search={"host": ['*' if arguments.all else arguments.fqdn]},
-        output=['hostid', 'host'],
+        output=['hostid', 'host', 'proxy_hostid'],
         selectHostGroups=['groupid', 'name'],
         selectInterfaces=['interfaceid', 'type', 'ip', 'dns', 'port', 'useip', 'main'],
         selectParentTemplates=['templateid', 'name'],

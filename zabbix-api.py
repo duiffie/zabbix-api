@@ -229,6 +229,8 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
             log.warning("Proxy '%s' does not exist", arguments.proxy)
             sys.exit(1)
         api_request['proxy_hostid'] = proxydata['proxyid']
+    else
+        api_request['proxy_hostid'] = ''
 
     return api_request
 

@@ -129,6 +129,22 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     parser_proxy_get.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser_proxy_get.set_defaults(func=proxy_get)
 
+    # create the parser for the "action" command
+    DESCRIPTION = 'Create/delete/get/update action objects in Zabbix'
+    parser_action = subparsers.add_parser('action', description=DESCRIPTION, help=DESCRIPTION)
+    action_subparsers = parser_action.add_subparsers(required=True)
+
+    # crea ther parser for the "action" command
+    DESCRIPTION = 'Get action objects from Zabbix'
+    parser_action_get = action_subparsers.add_parser('get', description=DESCRIPTION, help=DESCRIPTION)
+    parser_action_get.add_argument('-a', '--all', action='store_true', help='Retrieve all actions')
+    parser_action_get.add_argument('-n', '--name',type=str, help='Action name')
+    parser_action_get.add_argument('-at', '--action-type', type=int, choices=[1, 2, 3], help='Action type. 1 = Discovery, 2 = Autoregistration, 3 = Internal')
+    parser_action_get.add_argument('-v', '--verbose', action='count', help='Be more verbose')
+    parser_action_get.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser_action_get.set_defaults(func=action_get)
+
+
     # parse the args
     arguments = parser.parse_args()
 
@@ -397,6 +413,37 @@ def proxy_get(arguments):
         log.debug("Proxy '%s' does not exist", arguments.name)
         return None
 
+def action_get(arguments):
+    """Function to query hosts"""
+    if not arguments.all and not arguments.name:
+        log.error("Argument -a or -n is required for the 'action get' command")
+        sys.exit(1)
+
+    if arguments.all and arguments.name:
+        log.error("Cannot accept both -a and -n arguments for the 'action get' command")
+        sys.exit(1)
+
+    action = api.action.get(
+        search={"action": ['*' if arguments.all else arguments.name]},
+        output=["actionid", "name", "eventsource", "status"],
+    )
+
+    try:
+        if arguments.func is action_get:
+            if arguments.all:
+                print(json.dumps(action))
+                return None
+            print(json.dumps(action[0]))
+            return None
+        return host[0]
+    except Exception:  # pylint: disable=broad-exception-caught
+        if arguments.func is action_get:
+            log.warning("Action '%s' does not exist", arguments.name)
+            sys.exit(1)
+        log.debug("Action '%s' does not exist", arguments.name)
+        return None
+
+
 
 # Check if config file exists
 api_config = configparser.ConfigParser()
@@ -441,7 +488,7 @@ except Exception as Error:  # pylint: disable=broad-exception-caught
 
 # Check if authentication is still valid
 if api.check_auth():
-
+    
     # call whatever function was selected
     args.func(args)
 

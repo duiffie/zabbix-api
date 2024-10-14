@@ -46,8 +46,10 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     parser_host_create.add_argument('-t', '--template', type=str, action='append', help='Add this template to the host. Can be used multiple times')
     parser_host_create.add_argument('-p', '--proxy', type=str, help='Connect the agent through this zabbix proxy')
     parser_host_create.add_argument('-it', '--interface_type', type=int, choices=[1, 2, 3, 4], help='Interface type to create. 1 = Agent, 2 = SNMP, 3 = IPMI, 4 = JMX', required=True)
-    parser_host_create.add_argument('-ii', '--interface_ip', type=str, help='IP-address used by the interface', required=True)
+        parser_host_create.add_argument('-ii', '--interface_ip', type=str, help='IP-address used by the interface', required=True)
     parser_host_create.add_argument('-e', '--encryption', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
+    parser_host_create.add_argument('-tp', '--tls_psk', type=str, help='TLS pre-shared-key')
+    parser_host_create.add_argument('-ti', '--tls_psk_identity', type=str, help='TLS identity')
     parser_host_create.add_argument('-v', '--verbose', action='count', help='Be more verbose')
     parser_host_create.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser_host_create.set_defaults(func=host_create)
@@ -83,6 +85,8 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     parser_host_update.add_argument('-ii', '--interface_ip', type=str, help='IP-address used by the interface')
     parser_host_update.add_argument('-ne', '--no_encryption', action="store_true", help="Don't encrypt connections to the host")
     parser_host_update.add_argument('-e', '--encryption', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
+    parser_host_update.add_argument('-tp', '--tls_psk', type=str, help='TLS pre-shared-key')
+    parser_host_update.add_argument('-ti', '--tls_psk_identity', type=str, help='TLS identity')
     parser_host_update.add_argument('-v', '--verbose', action='count', help='Be more verbose')
     parser_host_update.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser_host_update.set_defaults(func=host_update)
@@ -125,9 +129,56 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     parser_proxy_get = proxy_subparsers.add_parser('get', description=DESCRIPTION, help=DESCRIPTION)
     parser_proxy_get.add_argument('-a', '--all', action='store_true', help='Retrieve all proxies')
     parser_proxy_get.add_argument('-n', '--name', type=str, help='Proxy name')
+    parser_proxy_get.add_argument('-i', '--id', type=int, help='Proxy id')
     parser_proxy_get.add_argument('-v', '--verbose', action='count', help='Be more verbose')
     parser_proxy_get.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser_proxy_get.set_defaults(func=proxy_get)
+
+    # create the parser for the "usermacro" command
+    DESCRIPTION = 'Get usermacro objects from Zabbix'
+    parser_usermacro = subparsers.add_parser('usermacro', description=DESCRIPTION, help=DESCRIPTION)
+    usermacro_subparsers = parser_usermacro.add_subparsers(required=True)
+
+    # create the parser for the "usermacro" -> "create" command
+    DESCRIPTION = 'Create usermacro objects in Zabbix'
+    parser_usermacro_create = usermacro_subparsers.add_parser('create', description=DESCRIPTION, help=DESCRIPTION)
+    parser_usermacro_create.add_argument('-f', '--fqdn', type=str, help='Retrieve all usermacros for a specific host', required=True)
+    parser_usermacro_create.add_argument('-m', '--macro', type=str, help='Macro name', required=True)
+    parser_usermacro_create.add_argument('-v', '--value', type=str, help='Macro value')
+    parser_usermacro_create.add_argument('-d', '--description', type=str, help='Macro description')
+    parser_usermacro_create.add_argument('--verbose', action='count', help='Be more verbose')
+    parser_usermacro_create.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser_usermacro_create.set_defaults(func=usermacro_create)
+
+    # create the parser for the "usermacro" -> "delete" command
+    DESCRIPTION = 'Delete usermacro objects in Zabbix'
+    parser_usermacro_delete = usermacro_subparsers.add_parser('delete', description=DESCRIPTION, help=DESCRIPTION)
+    parser_usermacro_delete.add_argument('-f', '--fqdn', type=str, help='Retrieve all usermacros for a specific host', required=True)
+    parser_usermacro_delete.add_argument('-m', '--macro', type=str, help='Macro name')
+    parser_usermacro_delete.add_argument('--verbose', action='count', help='Be more verbose')
+    parser_usermacro_delete.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser_usermacro_delete.set_defaults(func=usermacro_delete)
+
+    # create the parser for the "usermacro" -> "get" command
+    DESCRIPTION = 'Get usermacro objects from Zabbix'
+    parser_usermacro_get = usermacro_subparsers.add_parser('get', description=DESCRIPTION, help=DESCRIPTION)
+    parser_usermacro_get.add_argument('-f', '--fqdn', type=str, help='Retrieve all usermacros for a specific host', required=True)
+    parser_usermacro_get.add_argument('-a', '--all', action='store_true', help='Retrieve all usermacros')
+    parser_usermacro_get.add_argument('-m', '--macro', type=str, help='Macro name')
+    parser_usermacro_get.add_argument('-v', '--verbose', action='count', help='Be more verbose')
+    parser_usermacro_get.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser_usermacro_get.set_defaults(func=usermacro_get)
+
+    # create the parser for the "usermacro" -> "get" command
+    DESCRIPTION = 'Update usermacro objects in Zabbix'
+    parser_usermacro_update = usermacro_subparsers.add_parser('update', description=DESCRIPTION, help=DESCRIPTION)
+    parser_usermacro_update.add_argument('-f', '--fqdn', type=str, help='Update usermacro on this host', required=True)
+    parser_usermacro_update.add_argument('-m', '--macro', type=str, help='Name of the macro', required=True)
+    parser_usermacro_update.add_argument('-v', '--value', type=str, help='Value of the macro')
+    parser_usermacro_update.add_argument('-d', '--description', type=str, help='Description of the macro')
+    parser_usermacro_update.add_argument('--verbose', action='count', help='Be more verbose')
+    parser_usermacro_update.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser_usermacro_update.set_defaults(func=usermacro_update)
 
     # parse the args
     arguments = parser.parse_args()
@@ -138,7 +189,6 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
 def gen_psk(length):
     """Function generating PSK's"""
     return secrets.token_hex(length // 2)
-
 
 def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-statements
     """Function generating host api request"""
@@ -162,7 +212,7 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
             api_request['templates'] = []
             for template in arguments.template:
                 templatedata = template_get(Namespace(func=arguments.func, all=False, name=template))
-                if groupdata is None:
+                if templatedata is None:
                     log.warning("Template '%s' does not exist", template)
                     continue
                 api_request['templates'].append({'templateid': templatedata['templateid']})
@@ -223,12 +273,19 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
         api_request['tls_accept'] = 2
         api_request['tls_psk_identity'] = arguments.fqdn
         api_request['tls_psk'] = gen_psk(arguments.encryption)
+    if arguments.tls_psk_identity and arguments.tls_psk:
+        api_request['tls_connect'] = 2
+        api_request['tls_accept'] = 2
+        api_request['tls_psk_identity'] = arguments.tls_psk_identity
+        api_request['tls_psk'] = arguments.tls_psk
     if arguments.proxy is not None:
         proxydata = proxy_get(Namespace(func=arguments.func, all=False, name=arguments.proxy))
         if proxydata is None:
             log.warning("Proxy '%s' does not exist", arguments.proxy)
             sys.exit(1)
-        api_request['proxy_hostid'] = proxydata['proxyid']
+#        api_request['proxy_hostid'] = proxydata['proxyid']
+        api_request['monitored_by'] = 1
+        api_request['proxyid'] = proxydata['proxyid']
     else:
         api_request['proxy_hostid'] = 0
 
@@ -281,16 +338,20 @@ def host_get(arguments):
 
     host = api.host.get(
         search={"host": ['*' if arguments.all else arguments.fqdn]},
-        output=['hostid', 'host', 'proxy_hostid'],
+        output=['hostid', 'host', 'proxy_hostid', 'proxyid'],
         selectHostGroups=['groupid', 'name'],
         selectInterfaces=['interfaceid', 'type', 'ip', 'dns', 'port', 'useip', 'main'],
         selectParentTemplates=['templateid', 'name'],
+        selectMacros=['hostmacroid', 'macro', 'value'],
         searchWildcardsEnabled=True,
     )
 
     try:
         if arguments.func is host_get:
             if arguments.all:
+                print(json.dumps(host))
+                return None
+            if host:
                 print(json.dumps(host))
                 return None
             print(json.dumps(host[0]))
@@ -373,13 +434,13 @@ def template_get(arguments):
 
 def proxy_get(arguments):
     """Function to query proxies"""
-    if not arguments.all and not arguments.name:
-        log.error("Argument -a or -n is required for the 'proxy get' command")
+    if not arguments.all and not arguments.name and not arguments.id:
+        log.error("Argument -a, -n or -i is required for the 'proxy get' command")
         sys.exit(1)
 
     proxy = api.proxy.get(
-        search={"host": ['*' if arguments.all else arguments.name]},
-        output=['proxyid', 'host', 'description'],
+        search={"name": ['*' if arguments.all else arguments.name]},
+        output=['proxyid', 'name', 'description'],
         searchWildcardsEnabled=True,
     )
 
@@ -396,6 +457,98 @@ def proxy_get(arguments):
             return None
         log.debug("Proxy '%s' does not exist", arguments.name)
         return None
+
+
+def usermacro_create(arguments):
+    """Function to create usermacros"""
+
+    hostdata = host_get(Namespace(func=arguments.func, all=False, fqdn=arguments.fqdn))
+
+    if hostdata is not None:
+        api_request = {}
+        api_request['hostid'] = hostdata['hostid']
+        api_request['macro'] = arguments.macro
+        api_request['value'] = arguments.value
+
+        if arguments.description:
+            api_request['description'] = arguments.description
+        try:
+            api.usermacro.create(api_request)
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            log.error("Unable to create usermacro '%s' (%s)", arguments.macro, error)
+            sys.exit(1)
+
+
+def usermacro_delete(arguments):
+    """Function to delete usermacros"""
+
+    hostmacrodata = usermacro_get(Namespace(func=arguments.func, all=False, fqdn=arguments.fqdn, macro=arguments.macro))
+
+    if hostmacrodata is not None:
+        try:
+            api.usermacro.delete(hostmacrodata['hostmacroid'])
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            log.error("Could not delete macro '%s' (%s)", arguments.macro, error)
+            sys.exit(1)
+
+        log.info("Macro '%s' successfully deleted", arguments.macro)
+    else:
+        log.error("Macro '%s' does not exist", arguments.macro)
+
+
+def usermacro_get(arguments):
+    """Function to query usermacros"""
+
+    hostdata = host_get(Namespace(func=arguments.func, all=False, fqdn=arguments.fqdn))
+
+    usermacro = api.usermacro.get(
+        hostids=hostdata['hostid'],
+        search={"macro": ['*' if arguments.all else arguments.macro]},
+        output=['hostmacroid', 'macro', 'value', 'description'],
+        searchWildcardsEnabled=True,
+    )
+
+    try:
+        if arguments.func is usermacro_get:
+            if arguments.all:
+                print(json.dumps(usermacro))
+                return None
+            if usermacro:
+                print(json.dumps(usermacro))
+                return None
+            print(json.dumps(usermacro[0]))
+            return None
+        return usermacro[0]
+    except Exception:  # pylint: disable=broad-exception-caught
+        if arguments.func is usermacro_get:
+            log.error("Macro '%s' does not exist", arguments.macro)
+            sys.exit(1)
+        log.debug("Macro '%s' does not exist", arguments.macro)
+        return None
+
+
+def usermacro_update(arguments):
+    """Function to update a usermacro"""
+    if not arguments.value and not arguments.description:
+        log.error("Argument -v or -d is required for the 'usermacro update' command")
+        sys.exit(1)
+
+    macrodata = usermacro_get(Namespace(func=arguments.func, all=False, fqdn=arguments.fqdn, macro=arguments.macro))
+
+    api_request = {}
+    api_request['hostmacroid'] = macrodata['hostmacroid']
+
+    if arguments.value:
+        api_request['value'] = arguments.value
+
+    if arguments.description:
+        api_request['description'] = arguments.description
+
+    try:
+        api.usermacro.update(api_request)
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        log.error("Unable to update usermacro '%s' (%s)", arguments.macro, error)
+        sys.exit(1)
 
 
 # Check if config file exists

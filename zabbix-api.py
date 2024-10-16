@@ -50,6 +50,7 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     parser_host_create.add_argument('-e', '--encryption', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
     parser_host_create.add_argument('-tp', '--tls_psk', type=str, help='TLS pre-shared-key')
     parser_host_create.add_argument('-ti', '--tls_psk_identity', type=str, help='TLS identity')
+    parser_host_create.add_argument('-s', '--status', type=int, choices=[0, 1], default=0, help='Status and function of the host. 0 = (default) monitored host, 1 = unmonitored host.')
     parser_host_create.add_argument('-v', '--verbose', action='count', help='Be more verbose')
     parser_host_create.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser_host_create.set_defaults(func=host_create)
@@ -87,6 +88,7 @@ def parse_args():  # pylint: disable=too-many-locals,too-many-statements
     parser_host_update.add_argument('-e', '--encryption', type=int, choices=[32, 64, 128, 256, 512], help='Encrypt connections to the host with the specified keylength')
     parser_host_update.add_argument('-tp', '--tls_psk', type=str, help='TLS pre-shared-key')
     parser_host_update.add_argument('-ti', '--tls_psk_identity', type=str, help='TLS identity')
+    parser_host_update.add_argument('-s', '--status', type=int, choices=[0, 1], help='Status and function of the host. 0 = monitored host, 1 = unmonitored host.')
     parser_host_update.add_argument('-v', '--verbose', action='count', help='Be more verbose')
     parser_host_update.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser_host_update.set_defaults(func=host_update)
@@ -190,6 +192,7 @@ def gen_psk(length):
     """Function generating PSK's"""
     return secrets.token_hex(length // 2)
 
+
 def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-statements
     """Function generating host api request"""
     api_request = {}
@@ -264,7 +267,7 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
             api_request['tls_connect'] = 1
             api_request['tls_accept'] = 1
 
-    # generic
+    # generic (create & update)
     api_request['host'] = arguments.fqdn
     if arguments.desc:
         api_request['description'] = arguments.desc
@@ -278,12 +281,13 @@ def gen_host_request(arguments):  # pylint: disable=too-many-branches,too-many-s
         api_request['tls_accept'] = 2
         api_request['tls_psk_identity'] = arguments.tls_psk_identity
         api_request['tls_psk'] = arguments.tls_psk
+    if arguments.status in [0, 1]:
+        api_request['status'] = arguments.status
     if arguments.proxy is not None:
         proxydata = proxy_get(Namespace(func=arguments.func, all=False, name=arguments.proxy))
         if proxydata is None:
             log.warning("Proxy '%s' does not exist", arguments.proxy)
             sys.exit(1)
-#        api_request['proxy_hostid'] = proxydata['proxyid']
         api_request['monitored_by'] = 1
         api_request['proxyid'] = proxydata['proxyid']
     else:
@@ -338,7 +342,7 @@ def host_get(arguments):
 
     host = api.host.get(
         search={"host": ['*' if arguments.all else arguments.fqdn]},
-        output=['hostid', 'host', 'proxy_hostid', 'proxyid'],
+        output=['hostid', 'host', 'status', 'proxy_hostid', 'proxyid'],
         selectHostGroups=['groupid', 'name'],
         selectInterfaces=['interfaceid', 'type', 'ip', 'dns', 'port', 'useip', 'main'],
         selectParentTemplates=['templateid', 'name'],

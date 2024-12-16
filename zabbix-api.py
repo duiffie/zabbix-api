@@ -589,9 +589,9 @@ else:
 # Create an instance of the ZabbixAPI class with the specified authentication details
 try:
     if 'Token' in api_config['Api']:
-        api = ZabbixAPI(url=api_config['Api']['Url'], token=api_config['Api']['Token'])
+        api = ZabbixAPI(url=api_config['Api']['Url'], token=api_config['Api']['Token'], skip_version_check=True)
     else:
-        api = ZabbixAPI(url=api_config['Api']['Url'], user=api_config['Api']['User'], password=api_config['Api']['Password'])
+        api = ZabbixAPI(url=api_config['Api']['Url'], user=api_config['Api']['User'], password=api_config['Api']['Password'], skip_version_check=True)
 except Exception as Error:  # pylint: disable=broad-exception-caught
     log.critical("Could not login to zabbix api (%s)", Error)
     sys.exit(1)
